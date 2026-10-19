@@ -1,0 +1,256 @@
+# Changes #
+
+## Version 5.5.0 (Apple Silicon Native Port & Pro Edition - 2026) ##
+
+- **Native macOS Apple Silicon (arm64)**: Built and packaged natively for Apple Silicon (M1/M2/M3/M4/Pro/Max) with Python 3.11, wxPython 4.2+, Pyo 1.1, and NumPy 1.26.
+- **Visual Panic Button & Emergency Stop**: Dedicated high-visibility Panic GUI element in the transport panel and grapher toolbar, immediately cutting sound, resetting DSP, and flashing on trigger (`Esc`).
+- **Native macOS Drag & Drop**: Drag and drop audio files directly into file/sampler slots, or drop `.c5` project files onto the canvas/Dock to immediately open.
+- **Multi-Level Undo / Redo (`Cmd+Z` / `Cmd+Shift+Z`)**: Complete undo/redo history for automation curves and point manipulations with deep-copy snapshot protection.
+- **Unified "All Parameters" Randomization**:
+  - Selecting "All" in the parameter menu allows simultaneous randomization of every automation curve with distinct, independent seeds.
+  - Supported across Stochastic, Waveform Generator, and Process (Scatter, Jitter, Comp/Expand, Smoother).
+- **Instant Visual & Audio Refresh**: Grapher immediately refreshes non-selected curves and updates DSP parameters on the first click without requiring parameter switching.
+- **Quick Search Palette (`Cmd+K`)**: Rapid module search and fuzzy finding directly in the File menu and via keyboard shortcut.
+- **Toggle-to-Close Generator Menus**: Generator palette icons toggle open and closed directly on click.
+- **Retina & Dark Mode Polish**: Enhanced contrast, rounded widgets, and crisp modern typography.
+
+### Known Bugs ###
+- **Transport Panic / Clocker Hover Glitch**: Hovering directly over the Transport Panic button on macOS may cause the Panic button and adjacent minute counter to visually flicker or temporarily disappear until clicked or re-hovered. This is purely cosmetic: triggering Panic (via `Esc` key or click), playback timing, and all DSP functions remain 100% operational.
+
+
+## Version 5.4.0 ##
+
+- Last fixes.
+
+- Official release.
+
+## Version 5.3.9 ##
+
+- Various bug fixes.
+
+- Added filter per grain in StochGrains.c5 an StochGrains2.c5.
+
+- Six new modules. Filters/AutoModFilter, Filters/Binaural, Filter/StateVar2
+  ResonatorsVerbs/MatrixReverb, Synthesis/WaveScanSynth and Time/Stutterer.
+
+## Version 5.3.8 ##
+
+- Fixed crash when opening the application when .cecilia5 folder does not exist.
+
+- Fixed recording audio output twice (or more) on linux and Windows.
+
+## Version 5.3.7 ##
+
+- Track down every single segmentation fault!
+
+- Presets are no more saved in .c5 files. They are saved in a folder, named as the module,
+  in ".cecilia5/presets/".
+
+## Version 5.3.6 ##
+
+- Upgraded to python version 3.7.4 (64-bit), wxPython-4.0.6 and pyo 1.0.1.
+
+## Version 5.3.5 ##
+
+- Upgraded to python version 3.6.4, wxPython-4.0.1 and pyo 0.9.0.
+
+- Better error handling when loading or running a cecilia5 module.
+ 
+## Version 5.3.4 ##
+
+- Upgraded to python version 3.6.3, wxPython-4.0.0b2 and pyo 0.8.8.
+
+- Fixed preferences path encoding on Windows.
+
+- Fixed unicode paths on MacOS when running as an application.
+
+## Version 5.3.3 ##
+
+- Upgraded to python version 3.6.2, wxPython-4.0.0b1 and pyo 0.8.7.
+
+## Version 5.3.2 ##
+
+- Build against wxPython-4.0.0a2.
+
+## Version 5.3.1 ##
+
+- Better handling of non-ascii characters in preferences file.
+
+- Fixed standalone packaging on OSX.
+
+- Fixed curved line not showing on module initialization.
+
+- UltimateGrainer now allows a grain duration up to 10 seconds.
+
+## Version 5.3.0 ##
+
+- Migration of the application code to python3 and wxpython 3.0.3 (phoenix) completed.
+
+- Source code cleanup (refactoring, removed dead and/or duplicated code).
+
+- Lot of fixed bugs.
+
+- Automatic saving of the module after creating or deleting a preset.
+
+- Warning to save on quit.
+
+- The app now opens with the last used module (instead of the random chooser).
+
+- Revisited tooltip and html documentation.
+
+- On Windows, default preferences for input/output devices should be set to WASAPI devices.
+
+- Added ChenLee attractor to the ChaosMod plugin.
+
+- Added various modulation waveforms to BinModulator.c5
+
+- All modules have been tested and cleaned.
+
+New modules:
+
+- UltimateGrainer - A state-of-the-art granulation processing module.
+
+- RandomAccumulator - Variable speed recording accumulator module.
+
+- UpDistoRes - Arctangent distortion module with upsampling and resonant lowpass filter.
+
+
+## Version 5.0.8 ##
+
+- Record button now records in realtime (offline rendering is now triggered with Menubar->Action->Bounce to Disk.
+
+- User can set the starting point by moving the cursor above the grapher.
+
+- Drag and Drop file or folder on the input sound popup to loads sounds.
+
+- Right-click on sound popup opens a "Recent audio files" popup.
+
+- Sliders can be controlled with MIDI or Open Sound Control messages.
+
+- When moving a point on the graph, Alt key clipped the position on the horizontal axis while Shift-Alt keys clipped the position on the vertical axis.
+
+- Added two batch processing modes. Either every presets applied on the selected sound, or the current preset applied to every sounds in the folder.
+
+- Midi notes are automatically assigned to the sampler transposition and controller 7 to the master gain. Must be activated in the preferences.
+
+
+## Version 5.0.7 ##
+
+- Disabled duration slider while playing.
+
+- Fixed segmentation fault on preset changes.
+
+- Added a DropFileTarget on the Grapher (for .c5 or .py files).
+
+- Fixed opening soundfile player/editor on Windows and OSX.
+
+- Changed delay time before a popup close itself (when loosing focus) from 500 ms to 1000 ms.
+
+## Version 5.0.6 ##
+
+- Fixed memory leak occuring on each run play/stop (need pyo [revision 974](https://code.google.com/p/cecilia5/source/detail?r=974)).
+
+- Allow fraction notation in cgen (list entry in the interface).
+
+## Version 5.0.5 ##
+
+- Disabled printing sound info for all sounds in the selected folder.
+
+- Added new filter module, Vocoder. (need pyo to be up-to-date with sources).
+
+- Fixed wrong executable path generated by py2app (OSX app).
+
+- Removed Jack and Coreaudio from driver's list in bundled app on OSX (leaved them when running from sources).
+
+- Fixed bug: The red button doesn't turn off at the end of recording.
+
+- cgen ignores trailing coma in poup entry.
+
+- Fixed bug: Do not quiery for the control panel if the interface doesn't exist yet.
+
+- Fixed bug in ListEntry widget when loading from a preset.
+
+## Version 5.0.3 ##
+
+- List in cgen popup window can now be entered as 'comma' or 'space' separated values.
+
+- Fixed number of channels used by the audio Server.
+
+- Wait for the audio Server releasing soundcard's stream before allowing to play again.
+
+- Fixed saving .c5 file on Windows.
+
+- Added 2 filter modules: BrickWall.c5 and BandBrickWall.c5.
+
+## Version 5.0.2 ##
+
+- Automatically save a preset named "last save" when saving a module. On module loading, if "last save" preset exists, it is activated.
+
+- Fixed display of the Channels menu.
+
+- Fixed bugs in sliders automation recording.
+
+## Version 5.0.1 ##
+
+- Fixed audio input/output selection.
+
+- Fixed BaseModule.addSampler "pitch" argument.
+
+## Version 5.0.0 ##
+
+First beta release.
+
+#########################################################################################
+
+Version 5.0.9:
+
+- L'outil de polyphonie, dans la section des popup menus, offre maintenant une sélection d'accords, plutôt que seulement des vitesses de lecture au hasard.
+
+- Ajout d'un spectrogramme temps-réel à l'application.
+
+- Multiple modes pour le signal source d'un module (icône juste à droite du menu de sélection du son source).
+ -- mode 0 (icône de fichier): mode standard, par la lecture d'un fichier son
+ -- mode 1 (icône de micro): Entrée micro temps-réel, les paramètres du sampler sont ignorés.
+ -- mode 2 (icône de micro avec un "1"): La mémoire du sampler est remplie par le signal provenant de l'entrée micro, une seule fois au début de la performance. Ensuite, le sampler boucle le signal selon les paramètres définis dans l'interface.
+ -- mode 3 (icône de micro entouré de flèches): La mémoire du sampler est remplie, en continu, par le signal provenant de l'entrée micro. Une mémoire à double tampons est utilisée pour éviter les clics. Le sampler agit normalement sur un signal audio constamment renouvelé.
+ ** Les mode 1 et 3 ne sont pas disponibles pour les modules nécéssitant un son en RAM comme origine du processus (exemple les modules de granulation).
+
+- Ajout d'une adresse d'envoi OSC aux sliders, pour communiquer la valeurs d'initialisation à une interface externe au début de la performance.
+
+- Ajout de l'option menu "Use Sound Duration on Folder Batch Processing". La durée de chacun des sons contrôle la durée de l'export du son traité.
+
+- Optimization du rafraichissement graphique du Grapher.
+
+- Possibilité de modifier en temps réel, à l'aide des flèches au dessus du menu de sélection, l'ordre des plugins dans l'onglet "Port-Processing".
+
+- Sans changer le nombre de canaux audio du processus, l'utilisateur peut changer, via les préférences, les premières entrée/sortie physiques (sur la carte-son) utilisées.
+
+- Ajout du contrôle MIDI sur les sliders de la fenêtre du sampler (Clic droit sur le nom du paramètre pour lancer l'assignation d'un potentiomètre. Shift+Clic droit pour annuler l'assignation courante).
+
+- Ajout du contrôle OSC sur les sliders de la fenêtre du sampler (Double-clic sur le nom du paramètre pour ouvrir la fenêtre de configuration).
+
+- Nouveaux formats audio supportés: FLAC, OGG, SD2, AU, CAF.
+
+
+Nouveaux modules:
+
+- ResonatorsVerbs/ConvolutionReverb : Réverbe par convolution.
+
+- Time/Pelletizer : Module de granulation où la fréquence de génération des grains, la hauteur et la durée sont indépendantes.
+
+- Pitch/LooperBank : Jusqu'à 500 lectures en boucle simultannées, avec chacune leur random propre sur la hauteur et l'amplitude.
+
+- Catégorie "Spectral", 13 modules de manipulations spectrales basées sur le vocodeur de phase.
+
+- Amélioration d'un grand nombre de modules déjà présents.
+
+
+Nouveau Plugin:
+
+- ChaosMod : Modulation en anneaux à l'aide d'attracteurs chaotique.
+
+Version 5.1.0:
+    
+Version 5.2.0:
+
+Version 5.2.1:

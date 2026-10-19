@@ -1,0 +1,82 @@
+class Module(BaseModule):
+    """
+    "Convolution brickwall lowpass/highpass/bandpass/bandstop filter"
+    
+    Description
+
+    Convolution filter with a user-defined length sinc kernel. This
+    kind of filters are very CPU expensive but can give quite good
+    stopband attenuation.
+    
+    Sliders
+
+        # Cutoff Frequency :
+            Cutoff frequency, in Hz, of the filter.
+        # Bandwidth :
+            Bandwith, in Hz, of the filter. 
+            Used only by bandpass and pnadstop filters.
+        # Filter Order :
+            Number of points of the filter kernel. A longer kernel means
+            a sharper attenuation (and a higher CPU cost). This value is
+            only available at initialization time.
+
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+
+    Popups & Toggles
+
+        # Filter Type :
+            Type of the filter (lowpass, highpass, bandpass, bandstop)
+        # Balance :
+            Compression mode. Off, balanced with a fixed signal
+            or balanced with the input source.
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addSampler("snd")
+        self.deg = IRWinSinc(self.snd, freq=self.freq, bw=self.bw, type=self.type_index, order=int(self.order.get()), mul=self.env)
+
+#BALANCE
+        self.osc = Sine(10000, mul=.1)
+        self.balanced = Balance(self.deg, self.osc, freq=10)
+        self.out = Interp(self.deg, self.balanced)
+
+#INIT
+        self.balance(self.balance_index, self.balance_value)
+
+    def balance(self,index,value):
+        if index == 0:
+           self.out.interp  = 0
+        elif index ==1:
+           self.out.interp  = 1
+           self.balanced.input2 = self.osc
+        elif index == 2:
+           self.out.interp = 1
+           self.balanced.input2 = self.snd
+
+    def type(self, index, value):
+        self.deg.type = index
+
+    def order_up(self, value):
+        pass
+
+Interface = [
+    csampler(name="snd"),
+    cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue1"),
+    cslider(name="freq", label="Cutoff Frequency", min=20, max=18000, init=1000, rel="log", unit="Hz", col="green1"),
+    cslider(name="bw", label="Bandwidth", min=20, max=18000, init=1000, rel="log", unit="Hz", col="green2"),
+    cslider(name="order", label="Filter Order", min=32, max=1024, init=256, res="int", rel="lin", up=True, col="grey"),
+    cpopup(name="type", label="Filter Type", value=["Lowpass", "Highpass","Bandstop","Bandpass"], init="Lowpass", col="green1"),
+    cpopup(name="balance", label = "Balance", init= "Off", col="blue1", value=["Off","Compress", "Source"]),
+    cpoly()
+]
+

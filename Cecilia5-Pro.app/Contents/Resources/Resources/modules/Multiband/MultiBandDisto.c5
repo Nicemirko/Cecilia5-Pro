@@ -1,0 +1,100 @@
+class Module(BaseModule):
+    """
+    "Multi-band distortion module"
+    
+    Description
+
+    MultiBandDisto implements four separated spectral band distortions
+    with independent drive, slope and gain.
+
+    Sliders
+    
+        # Frequency Splitter : 
+            Split points for multi-band processing
+        # Band 1 Drive : 
+            Amount of distortion applied on the first band
+        # Band 1 Slope : 
+            Harshness of distorted first band
+        # Band 1 Gain : 
+            Gain of the distorted first band
+        # Band 2 Drive : 
+            Amount of distortion applied on the second band
+        # Band 2 Slope : 
+            Harshness of distorted second band
+        # Band 2 Gain : 
+            Gain of the distorted second band
+        # Band 3 Drive : 
+            Amount of distortion applied on the third band
+        # Band 3 Slope : 
+            Harshness of distorted third band
+        # Band 3 Gain : 
+            Gain of the distorted third band
+        # Band 4 Drive : 
+            Amount of distortion applied on the fourth band
+        # Band 4 Slope : 
+            Harshness of distorted fourth band
+        # Band 4 Gain : 
+            Gain of the distorted fourth band
+        # Dry / Wet : 
+            Mix between the original signal and the delayed signals
+
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+    
+    Popups & Toggles
+    
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+    
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addSampler("snd")
+        freqs = self.splitter.get(True)
+        self.FBfade = SigTo(value=1, time=.01, init=1)
+        self.split = FourBand(input=self.snd, freq1=freqs[0], freq2=freqs[1], freq3=freqs[2], mul=self.FBfade)
+        self.drives = self.duplicate([self.drive1,self.drive2,self.drive3,self.drive4], len(self.snd))
+        self.slopes = self.duplicate([self.drive1slope,self.drive2slope,self.drive3slope,self.drive4slope], len(self.snd))
+        self.mul1 = DBToA(self.drive1mul)
+        self.mul2 = DBToA(self.drive2mul)
+        self.mul3 = DBToA(self.drive3mul)
+        self.mul4 = DBToA(self.drive4mul)
+        self.muls = self.duplicate([self.mul1,self.mul2,self.mul3,self.mul4], len(self.snd))
+        self.disto = Disto(input=self.split, drive=self.drives, slope=self.slopes, mul=[i*0.1 for i in self.muls]).mix(self.nchnls)
+        self.out = Interp(self.snd, self.disto, self.drywet, mul=self.env)
+
+    def splitter_up(self, value):
+        self.FBfade.value = 0
+        time.sleep(.02)
+        self.split.freq1 = value[0]
+        self.split.freq2 = value[1]
+        self.split.freq3 = value[2]
+        time.sleep(.02)
+        self.FBfade.value = 1
+
+Interface = [   csampler(name="snd"), 
+                cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue1"),
+                csplitter(name="splitter", label="Frequency Splitter", min=100, max=18000, init=[150, 500, 2000], 
+                          num_knobs=3, rel="log", gliss=0, up=True, unit="Hz", col="grey"),
+                cslider(name="drive1", label="Band 1 Drive", min=0, max=1, init=0.5, rel="lin", unit="x", col="purple1", half=True),
+                cslider(name="drive2", label="Band 2 Drive", min=0, max=1, init=0.95, rel="lin", unit="x", col="red1", half=True),
+                cslider(name="drive1slope", label="Band 1 Slope", min=0, max=1, init=0.85, rel="lin", unit="x", col="purple2", half=True),
+                cslider(name="drive2slope", label="Band 2 Slope", min=0, max=1, init=0.8, rel="lin", unit="x", col="red2", half=True),
+                cslider(name="drive1mul", label="Band 1 Gain", min=-48, max=18, init=0, rel="lin", unit="dB", col="purple3", half=True),
+                cslider(name="drive2mul", label="Band 2 Gain", min=-48, max=18, init=0, rel="lin", unit="dB", col="red3", half=True),
+                cslider(name="drive3", label="Band 3 Drive", min=0, max=1, init=0.75, rel="lin", unit="x", col="green1", half=True),
+                cslider(name="drive4", label="Band 4 Drive", min=0, max=1, init=0.5, rel="lin", unit="x", col="blue1", half=True),
+                cslider(name="drive3slope", label="Band 3 Slope", min=0, max=1, init=0.75, rel="lin", unit="x", col="green2", half=True),
+                cslider(name="drive4slope", label="Band 4 Slope", min=0, max=1, init=0.5, rel="lin", unit="x", col="blue2", half=True),
+                cslider(name="drive3mul", label="Band 3 Gain", min=-48, max=18, init=0, rel="lin", unit="dB", col="green3", half=True),
+                cslider(name="drive4mul", label="Band 4 Gain", min=-48, max=18, init=0, rel="lin", unit="dB", col="blue3", half=True),
+                cslider(name="drywet", label="Dry / Wet", min=0, max=1, init=1, rel="lin", unit="x", col="blue1"),
+                cpoly()
+          ]
+

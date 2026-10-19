@@ -1,0 +1,88 @@
+class Module(BaseModule):
+    """
+    "Stereo delay module with LFO on delay times"
+
+    Description
+    
+    A stereo delay whose delay times are modulated with LFO of different shapes.
+
+    Sliders
+    
+        # Delay Time L : 
+            Delay time of the left channel delay
+        # Delay Time R : 
+            Delay time of the right channel delay
+        # LFO Depth L : 
+            Amplitude of the LFO applied on left channel delay time
+        # LFO Depth R : 
+            Amplitude of the LFO applied on right channel delay time
+        # LFO Freq L : 
+            Frequency of the LFO applied on left channel delay time
+        # LFO Freq R : 
+            Frequency of the LFO applied on right channel delay time
+        # Gain Delay L : 
+            Amplitude of the left channel delay
+        # Gain Delay R : 
+            Amplitude of the right channel delay
+        # Feedback : 
+            Amount of delayed signal fed back in the delay chain
+        # LFO Sharpness : 
+            Sharper waveform results in more harmonics in the LFO spectrum.
+        # Dry / Wet : 
+            Mix between the original signal and the delayed signals
+    
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+
+    Popups & Toggles
+
+        # LFO Waveform L : 
+            Shape of the LFO waveform applied on left channel delay
+        # LFO Waveform R : 
+            Shape of the LFO waveform applied on right channel delay
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+        
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addSampler("snd")
+        self.lfol = LFO(self.speedl, sharp=self.sharp, mul=self.depthl, type=self.wavel_index, add=1)
+        self.lfor = LFO(self.speedr, sharp=self.sharp, mul=self.depthr, type=self.waver_index, add=1)
+        self.ampl = DBToA(self.gainl)
+        self.ampr = DBToA(self.gainr)
+        self.delay = Delay(self.snd, delay=[self.dell*self.lfol,self.delr*self.lfor], feedback=self.fb, maxdelay=20, mul=[self.ampl, self.ampr])
+        self.out = Interp(self.snd, self.delay, self.drywet, mul=self.env*0.5)
+
+    def wavel(self, index, value):
+        self.lfol.type = (index - 1) % 8
+
+    def waver(self, index, value):
+        self.lfor.type = (index - 1) % 8
+
+Interface = [   csampler(name="snd", label="Audio"),
+                cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue1"),
+                cslider(name="dell", label="Delay Time L", min=0.0001, max=10, init=0.15, gliss=0.1, rel="log", unit="sec", half=True, col="purple1"),
+                cslider(name="delr", label="Delay Time R", min=0.0001, max=10, init=0.25, gliss=0.1, rel="log", unit="sec", half=True, col="red1"),
+                cslider(name="depthl", label="LFO Depth L", min=0.001, max=0.5, init=0.05, rel="log", unit="x", half=True, col="purple2"),
+                cslider(name="depthr", label="LFO Depth R", min=0.001, max=0.5, init=0.05, rel="log", unit="x", half=True, col="red2"),
+                cslider(name="speedl", label="LFO Freq L", min=0.001, max=200, init=1, rel="log", unit="Hz", half=True, col="purple3"),
+                cslider(name="speedr", label="LFO Freq R", min=0.001, max=200, init=1.1, rel="log", unit="Hz", half=True, col="red3"),
+                cslider(name="gainl", label="Gain Delay L", min=-48, max=18, init=0, rel="lin", unit="dB", half=True, col="purple4"),
+                cslider(name="gainr", label="Gain Delay R", min=-48, max=18, init=0, rel="lin", unit="dB", half=True, col="red4"),
+                cslider(name="fb", label="Feedback", min=0, max=0.999, init=0.5, rel="lin", unit="x", col="green1"),
+                cslider(name="sharp", label="LFO Sharpness", min=0, max=1, init=0.5, rel="lin", unit="x", col="green2"),
+                cslider(name="drywet", label="Dry / Wet", min=0, max=1, init=0.7, rel="lin", unit="x", col="blue1"),
+                cpopup(name="wavel", label="LFO Waveform L", init="Sine", col="purple2", value=["Sine", "Saw Up", "Saw Down", "Square", 
+                            "Triangle", "Pulse", "Bipolar Pulse", "SAH"]),
+                cpopup(name="waver", label="LFO Waveform R", init="Sine", col="red2", value=["Sine", "Saw Up", "Saw Down", "Square", 
+                            "Triangle", "Pulse", "Bipolar Pulse", "SAH"]),
+                cpoly()
+          ]
+

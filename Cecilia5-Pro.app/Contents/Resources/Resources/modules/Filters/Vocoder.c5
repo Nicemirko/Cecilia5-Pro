@@ -1,0 +1,98 @@
+class Module(BaseModule):
+    """
+    "Time domain vocoder effect"
+    
+    Description
+
+    Applies the spectral envelope of a first sound to the spectrum of a second sound.
+
+    The vocoder is an analysis/synthesis system, historically used to reproduce
+    human speech. In the encoder, the first input (spectral envelope) is passed
+    through a multiband filter, each band is passed through an envelope follower,
+    and the control signals from the envelope followers are communicated to the
+    decoder. The decoder applies these (amplitude) control signals to corresponding
+    filters modifying the second source (exciter).
+
+    Sliders
+
+        # Base Frequency :
+            Center frequency of the first band. This is the base 
+            frequency used tocompute the upper bands.
+        # Frequency Spread :
+            Spreading factor for upper band frequencies. Each band is 
+            `freq * pow(order, spread)`, where order is the harmonic rank of the band.
+        # Q Factor :
+            Q of the filters as `center frequency / bandwidth`. Higher values 
+            imply more resonance around the center frequency.
+        # Time Response :
+            Time response of the envelope follower. Lower values mean smoother changes,
+            while higher values mean a better time accuracy.
+        # Gain :
+            Output gain of the process in dB.
+        # Num of Bands : 
+            The number of bands in the filter bank. Defines the number of notches in
+            the spectrum.
+
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+
+    Popups & Toggles
+    
+        # Balance :
+            Compression mode. Off, balanced with a fixed signal
+            or balanced with the input source.
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.spec = self.addSampler("spec")
+        self.exci = self.addSampler("exci")
+        self.proc = Vocoder(self.spec, self.exci, freq=self.freq, spread=self.spread, 
+                        q=self.q, slope=self.slope, stages=int(self.stages.get()), mul=DBToA(self.gain))
+        self.deg = Mix(self.proc, voices=self.nchnls, mul=self.env)
+
+        self.osc = Sine(10000,mul=.1)
+        self.balanced = Balance(self.deg, self.osc, freq=10)
+        self.out = Interp(self.deg, self.balanced)
+
+        #INIT
+        self.balance(self.balance_index, self.balance_value)
+
+    def balance(self,index,value):
+       if index == 0:
+           self.out.interp= 0
+       elif index ==1:
+           self.out.interp= 1
+           self.balanced.input2 = self.osc
+       elif index == 2:
+           self.out.interp = 1
+           self.balanced.input2 = self.spec
+       else:
+           self.out.interp = 1
+           self.balanced.input2 = self.exci
+
+    def stages_up(self, value):
+        self.proc.stages = int(value)
+
+Interface = [
+    csampler(name="spec", label="Spectral Envelope"),
+    csampler(name="exci", label="Exciter"),
+    cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue1"),
+    cslider(name="freq", label="Base Frequency", min=10, max=1000, init=80, rel="log", unit="Hz", col="green1"),
+    cslider(name="spread", label="Frequency Spread", min=0.25, max=2, init=1.25, rel="log", unit="x", col="green2"),
+    cslider(name="q", label="Q Factor", min=0.5, max=200, init=20, rel="log", unit="Q", col="green3"),
+    cslider(name="slope", label="Time Response", min=0, max=1, init=0.5, rel="lin", unit="x", col="orange1"),
+    cslider(name="gain", label="Gain", min=-90, max=18, init=0, rel="lin", unit="dB", col="purple1"),
+    cslider(name="stages", label="Num of bands", min=4, max=64, init=20, rel="lin", res="int", unit="x", up=True),
+    cpopup(name="balance", label = "Balance", init= "Off", col="blue1", value=["Off","Compress", "Spectral", "Exciter"]),
+    cpoly()
+]
+

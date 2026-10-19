@@ -1,0 +1,148 @@
+import random
+class Module(BaseModule):
+    """
+    "Eight detuned resonators with jitter control"
+    
+    Description
+
+    This module implements a detuned resonator (waveguide) bank with 
+    random controls.
+    
+    This waveguide model consists of one delay-line with a 3-stages recursive
+    allpass filter which made the resonances of the waveguide out of tune.
+
+    Sliders
+    
+        # Pitch Offset : 
+            Base pitch of all the resonators
+        # Amp Random Amp : 
+            Amplitude of the jitter applied on the resonators amplitude
+        # Amp Random Speed : 
+            Frequency of the jitter applied on the resonators amplitude
+        # Pitch Random Amp : 
+            Amplitude of the jitter applied on the resonators frequency
+        # Pitch Random Speed : 
+            Frequency of the jitter applied on the resonators frequency
+        # Detune Factor : 
+            Detune spread of the resonators
+        # Pitch Voice 1 : 
+            Pitch of the first resonator
+        # Pitch Voice 2 : 
+            Pitch of the second resonator
+        # Pitch Voice 3 : 
+            Pitch of the third resonator
+        # Pitch Voice 4 : 
+            Pitch of the fourth resonator
+        # Pitch Voice 5 : 
+            Pitch of the fifth resonator
+        # Pitch Voice 6 : 
+            Pitch of the sixth resonator
+        # Pitch Voice 7 : 
+            Pitch of the seventh resonator
+        # Pitch Voice 8 : 
+            Pitch of the eigth resonator
+        # Feedback : 
+            Amount of resonators fed back in the resonators
+        # Dry / Wet : 
+            Mix between the original signal and the resonators
+
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+    
+    Popups & Toggles
+    
+        # Voice Activation ( 1 --> 8 ) :
+            Mute or unmute each of the eigth voices independently
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+    
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addSampler("snd")
+        chnls = len(self.snd)
+        num = 8 * chnls
+        self.defamp = Sig([0.005 for i in range(num)])
+        self.ra = Randi(min=1-self.rndamp, max=1+self.rndamp, freq=self.rndspeed*[random.uniform(.95,1.05) for i in range(num)])
+        self.rf = Randi(min=1-self.rnddelamp, max=1+self.rnddelamp, freq=self.rnddelspeed*[random.uniform(.95,1.05) for i in range(num)])
+        self.off_transpo = CentsToTranspo(self.offset)
+        self.frs = self.duplicate([self.voice1, self.voice2, self.voice3, self.voice4, self.voice5, self.voice6, self.voice7, self.voice8], chnls)
+        self.freqs = MToF(self.frs, mul=self.off_transpo)
+        self.all_freqs = self.freqs*self.rf
+        self.wgs = AllpassWG(input=self.snd*0.05, freq=self.all_freqs, feed=self.fb, detune=self.detune, minfreq=1, mul=self.ra*self.defamp)
+        self.out = Interp(self.snd, self.wgs.mix(chnls), self.drywet, mul=self.env)
+        
+        #INIT
+        self.onoffv1(self.onoffv1_value)
+        self.onoffv2(self.onoffv2_value)
+        self.onoffv3(self.onoffv3_value)
+        self.onoffv4(self.onoffv4_value)
+        self.onoffv5(self.onoffv5_value)
+        self.onoffv6(self.onoffv6_value)
+        self.onoffv7(self.onoffv7_value)
+        self.onoffv8(self.onoffv8_value)
+
+    def onoff(self, i, value):
+        l = self.defamp.value
+        l[i*2:i*2+2] = [value, value]
+        self.defamp.value = l
+
+    def onoffv1(self, value):
+        self.onoff(0, value)
+
+    def onoffv2(self, value):
+        self.onoff(1, value)
+
+    def onoffv3(self, value):
+        self.onoff(2, value)
+
+    def onoffv4(self, value):
+        self.onoff(3, value)
+
+    def onoffv5(self, value):
+        self.onoff(4, value)
+    
+    def onoffv6(self, value):
+        self.onoff(5, value)
+
+    def onoffv7(self, value):
+        self.onoff(6, value)
+
+    def onoffv8(self, value):
+        self.onoff(7, value)
+            
+Interface = [   csampler(name="snd"), 
+                cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue"),
+                cslider(name="offset", label="Pitch Offset", min=-2400, max=2400, init=0, rel="lin", unit="cnts", col="blue"),
+                cslider(name="rndamp", label="Amp Rand Amp", min=0, max=1, init=0, rel="lin", unit="x", col="blue4", half=True),
+                cslider(name="rnddelamp", label="Pitch Rand Amp", min=0, max=0.25, init=0, rel="lin", unit="x", col="blue2", half=True),
+                cslider(name="rndspeed", label="Amp Rand Speed", min=0.001, max=100, init=0.25, rel="log", unit="Hz", col="blue4", half=True),
+                cslider(name="rnddelspeed", label="Pitch Rand Speed", min=0.001, max=100, init=6, rel="log", unit="Hz", col="blue2", half=True),
+                cslider(name="detune", label="Detune Factor", min=0.001, max=1, init=0.5, rel="lin", unit="x", col="orange"),
+                cslider(name="voice1", label="Pitch Voice 1", min=1, max=130, init=60, rel="lin", unit="semi", half=True, col="green"),
+                cslider(name="voice2", label="Pitch Voice 2", min=1, max=130, init=72, rel="lin", unit="semi", half=True, col="green"),
+                cslider(name="voice3", label="Pitch Voice 3", min=1, max=130, init=84, rel="lin", unit="semi", half=True, col="green"),
+                cslider(name="voice4", label="Pitch Voice 4", min=1, max=130, init=96, rel="lin", unit="semi", half=True, col="green"),
+                cslider(name="voice5", label="Pitch Voice 5", min=1, max=130, init=48, rel="lin", unit="semi", half=True, col="green"),
+                cslider(name="voice6", label="Pitch Voice 6", min=1, max=130, init=67, rel="lin", unit="semi", half=True, col="green"),
+                cslider(name="voice7", label="Pitch Voice 7", min=1, max=130, init=36, rel="lin", unit="semi", half=True, col="green"),
+                cslider(name="voice8", label="Pitch Voice 8", min=1, max=130, init=87, rel="lin", unit="semi", half=True, col="green"),
+                cslider(name="fb", label="Feedback", min=0.01, max=0.9999, init=0.95, rel="lin", unit="x", col="red"),
+                cslider(name="drywet", label="Dry / Wet", min=0, max=1, init=1, rel="lin", unit="x", col="blue"),
+                ctoggle(name="onoffv1", label="Voice Activation ( 1 --> 8 )", init=1, stack=True, col="green"),
+                ctoggle(name="onoffv2", label="", init=1, stack=True, col="green"),
+                ctoggle(name="onoffv3", label="", init=1, stack=True, col="green"),
+                ctoggle(name="onoffv4", label="", init=1, stack=True, col="green"),
+                ctoggle(name="onoffv5", label="", init=1, stack=True, col="green"),
+                ctoggle(name="onoffv6", label="", init=1, stack=True, col="green"),
+                ctoggle(name="onoffv7", label="", init=1, stack=True, col="green"),
+                ctoggle(name="onoffv8", label="", init=1, stack=True, col="green"),
+                cpoly()
+          ]
+

@@ -1,0 +1,135 @@
+class Module(BaseModule):
+    """
+    "Two stereo delays with parallel or serial routing"
+    
+    Description
+
+    A classical module implementing a pair of stereo delays
+    with user-defined delay time, feedback and gain. Routing
+    of delays and filters can be defined with the popup menus.
+    
+    Sliders
+    
+        # Delay 1 Left : 
+            Delay one, left channel, delay time in seconds
+        # Delay 1 Right : 
+            Delay one, right channel, delay time in seconds
+        # Delay 1 Feedback : 
+            Amount of delayed signal fed back to the delay line input
+        # Delay 1 Gain : 
+            Gain of the delayed signal
+        # Delay 2 Left : 
+            Delay two, left channel, delay time in seconds
+        # Delay 2 Right : 
+            Delay two, right channel, delay time in seconds
+        # Delay 2 Feedback : 
+            Amount of delayed signal fed back to the delay line input
+        # Delay 2 Gain : 
+            Gain of the delayed signal
+        # Jitter Amp : 
+            Amplitude of the jitter applied on the delay times
+        # Jitter Speed : 
+            Speed of the jitter applied on the delay times
+        # Filter Freq : 
+            Cutoff or center frequency of the filter
+        # Filter Q : 
+            Q factor of the filter
+        # Dry / Wet : 
+            Mix between the original signal and the processed signals
+
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+    
+    Popups & Toggles
+    
+        # Delay Routing : 
+            Type of routing
+        # Filter Type : 
+            Type of filter
+        # Filter Routing : 
+            Specify if the filter is pre or post process
+        # Balance :
+            Compression mode. Off, balanced with a fixed signal
+            or balanced with the input source.
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addSampler("snd")
+        self.prefilt = Biquadx(self.snd, freq=self.filter, q=self.filterq, type=self.filttype_index, stages=2, mul=0.25)
+        self.filtChoice = SigTo(0, time=0.005, init=0)
+        self.toDelays = Interp(self.prefilt, self.snd, interp=self.filtChoice)
+        self.jit = Randi(min=1-self.jitamp, max=1+self.jitamp, freq=self.jitspeed, mul=[1]*4)
+        self.delay1 = Delay(self.toDelays, delay=[self.del1l*self.jit[0],self.del1r*self.jit[1]], 
+                            feedback=self.del1f, maxdelay=10, mul=DBToA(self.del1m))
+        self.delay2 = Delay(self.toDelays, delay=[self.del2l*self.jit[2],self.del2r*self.jit[3]], 
+                            feedback=self.del2f, maxdelay=10, mul=DBToA(self.del2m))
+        self.dels = self.delay1+self.delay2
+        self.postfilt = Biquadx(self.dels, freq=self.filter, q=self.filterq, type=self.filttype_index, stages=2, mul=0.25)
+        self.toOuts = Interp(self.dels, self.postfilt, interp=self.filtChoice)
+        self.deg = Interp(self.snd*0.25, self.toOuts, self.drywet, mul=self.env)
+
+        self.osc = Sine(10000,mul=.1)
+        self.balanced = Balance(self.deg, self.osc, freq=10)
+        self.out = Interp(self.deg, self.balanced)
+
+#INIT
+        self.balance(self.balance_index, self.balance_value)
+        self.routing(self.routing_index, self.routing_value)
+        self.filtrouting(self.filtrouting_index, self.filtrouting_value)
+
+    def balance(self,index,value):
+        if index == 0:
+            self.out.interp  = 0
+        elif index ==1:
+            self.out.interp  = 1
+            self.balanced.input2 = self.osc
+        elif index == 2:
+            self.out.interp = 1
+            self.balanced.input2 = self.snd
+ 
+    def filttype(self, index, value):
+        self.prefilt.type = index
+        self.postfilt.type = index
+
+    def routing(self, index, value):
+        if index == 0:
+            self.delay2.setInput(self.delay1, 0.1)
+            self.postfilt.setInput(self.delay2, 0.1)
+        else:
+            self.delay2.setInput(self.toDelays, 0.1)
+            self.postfilt.setInput(self.dels, 0.1)
+
+    def filtrouting(self, index, value):
+        self.filtChoice.value = index
+            
+Interface = [   csampler(name="snd", label="Audio"),
+                cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue"),
+                cslider(name="del1l", label="Delay 1 Left", min=0.0001, max=10, init=0.26, gliss=0.1, rel="log", unit="sec", half=True, col="blue1"),
+                cslider(name="del2l", label="Delay 2 Left", min=0.0001, max=10, init=0.16, gliss=0.1, rel="log", unit="sec", half=True, col="green1"),
+                cslider(name="del1r", label="Delay 1 Right", min=0.0001, max=10, gliss=0.1, init=0.25, rel="log", unit="sec", half=True, col="blue2"),
+                cslider(name="del2r", label="Delay 2 Right", min=0.0001, max=10, init=0.15, gliss=0.1, rel="log", unit="sec", half=True, col="green2"),
+                cslider(name="del1f", label="Delay 1 Feedback", min=0, max=0.999, init=0.5, rel="lin", unit="x", half=True, col="blue3"),
+                cslider(name="del2f", label="Delay 2 Feedback", min=0, max=0.999, init=0.5, rel="lin", unit="x", half=True, col="green3"),
+                cslider(name="del1m", label="Delay 1 Gain", min=-48, max=18, init=0, rel="lin", unit="dB", half=True, col="blue4"),
+                cslider(name="del2m", label="Delay 2 Gain", min=-48, max=18, init=0, rel="lin", unit="dB", half=True, col="green4"),
+                cslider(name="jitamp", label="Jitter Amp", min=0.0001, max=1, init=0.1, rel="log", unit="x", col="red1", half=True),
+                cslider(name="jitspeed", label="Jitter Speed", min=0.0001, max=50, init=0.03, rel="log", unit="Hz", col="red2", half=True),
+                cslider(name="filter", label="Filter Freq", min=30, max=20000, init=15000, rel="log", unit="Hz", col="orange1"),
+                cslider(name="filterq", label="Filter Q", min=0.5, max=10, init=0.707, rel="log", unit="Q", col="orange2"),
+                cslider(name="drywet", label="Dry / Wet", min=0, max=1, init=1, rel="lin", unit="x", col="blue1"),
+                cpopup(name="routing", label="Delay Routing", init="Parallel", col="purple1", value=["Serial","Parallel"]),
+                cpopup(name="filttype", label="Filter Type", init="Lowpass", col="orange1", value=["Lowpass","Highpass","Bandpass","Bandstop"]),
+                cpopup(name="filtrouting", label="Filter Routing", init="Pre", col="orange1", value=["Pre","Post"]),
+                cpopup(name="balance", label = "Balance", init= "Off", col="blue1", value=["Off","Compress", "Source"]),
+                cpoly()
+          ]
+

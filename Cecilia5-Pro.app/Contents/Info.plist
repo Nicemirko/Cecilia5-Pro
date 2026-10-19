@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Cecilia5 Pro</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>c5</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>CeciliaFileIcon5.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Cecilia5 Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
+	</array>
+	<key>CFBundleExecutable</key>
+	<string>Cecilia5-Pro</string>
+	<key>CFBundleIconFile</key>
+	<string>Cecilia5.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.cecilia5.Cecilia5Pro</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Cecilia5 Pro</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>5.5.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>5.5.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 1995-2026 iACT, Université de Montréal. Cecilia5-Pro Apple Silicon Port 2026.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cecilia5 Pro needs access to audio input for sound processing.</string>
+</dict>
+</plist>

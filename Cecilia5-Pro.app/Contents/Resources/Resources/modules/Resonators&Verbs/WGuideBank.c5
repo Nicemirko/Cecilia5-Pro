@@ -1,0 +1,105 @@
+import random
+class Module(BaseModule):
+    """
+    "Multiple waveguide models module"
+    
+    Description
+
+    Resonators whose frequencies are controlled with an expansion expression.
+    
+    freq[i] = BaseFreq * pow(WGExpansion, i)
+
+    Sliders
+    
+        # Base Freq : 
+            Base pitch of the waveguides
+        # WG Expansion : 
+            Spread between waveguides
+        # WG Feedback : 
+            Length of the waveguides
+        # Filter Cutoff : 
+            Center frequency of the filter
+        # Filter Q : 
+            Q (resonance) of the filter
+        # Amp Dev Amp : 
+            Amplitude of the jitter applied on the waveguides amplitude
+        # Amp Dev Speed : 
+            Frequency of the jitter applied on the waveguides amplitude
+        # Freq Dev Amp : 
+            Amplitude of the jitter applied on the waveguides pitch
+        # Freq Dev Speed : 
+            Frequency of the jitter applied on the waveguides pitch
+        # Dry / Wet : 
+            Mix between the original signal and the waveguides
+
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+    
+    Popups & Toggles
+    
+        # Filter Type : 
+            Type of the post-process filter
+        # Balance :
+            Compression mode. Off, balanced with a fixed signal
+            or balanced with the input source.
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addSampler("snd")
+        chnls = len(self.snd)
+        num = 8 * chnls
+        self.ra = Randi(min=1-self.dev, max=1+self.dev, freq=self.speed*[random.uniform(0.85,1.15) for i in range(num)], mul=0.03)
+        self.rf = Randi(min=1-self.fdev, max=1+self.fdev, freq=self.fspeed*[random.uniform(0.97,1.03) for i in range(num)])
+        self.voices = [self.basefreq*Pow(self.exp, i) for i in range(num)]
+        self.frs = self.duplicate(self.voices, chnls)
+        self.wgs = Waveguide(input=self.snd, freq=Dummy(self.frs)*self.rf, dur=60*self.fb, minfreq=10, mul=self.ra)
+        self.wgsm = self.wgs.mix(chnls)
+        self.biquad = Biquadx(self.wgsm, freq=self.filter, q=self.filterq, type=self.filttype_index, stages=2, mul=0.4)
+        self.deg = Interp(self.snd, self.biquad, self.drywet, mul=self.env)
+
+        self.osc = Sine(10000,mul=.1)
+        self.balanced = Balance(self.deg, self.osc, freq=10)
+        self.out = Interp(self.deg, self.balanced)
+
+#INIT
+        self.balance(self.balance_index, self.balance_value)
+
+    def balance(self,index,value):
+        if index == 0:
+            self.out.interp  = 0
+        elif index ==1:
+            self.out.interp  = 1
+            self.balanced.input2 = self.osc
+        elif index == 2:
+            self.out.interp = 1
+            self.balanced.input2 = self.snd
+
+    def filttype(self, index, value):
+        self.biquad.type = index
+            
+Interface = [   csampler(name="snd"), 
+                cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue"),
+                cslider(name="basefreq", label="Base Freq", min=10, max=1000, init=40, rel="log", unit="Hz", col="blue"),
+                cslider(name="exp", label="WG Expansion", min=0, max=4, init=1.33, rel="lin", unit="x", col="blue4"),
+                cslider(name="fb", label="WG Feedback", min=0, max=0.999, init=0.95, rel="lin", unit="x", col="blue4"),
+                cslider(name="filter", label="Filter Cutoff", min=50, max=20000, init=20000, rel="log", unit="Hz", col="green1"),
+                cslider(name="filterq", label="Filter Q", min=0.5, max=10, init=0.7, rel="log", unit="x", col="green2"),
+                cslider(name="dev", label="Amp Dev Amp", min=0.001, max=1, init=0.01, rel="log", unit="x", col="purple2", half = True),
+                cslider(name="fdev", label="Freq Dev Amp", min=0.001, max=1, init=0.01, rel="log", unit="x", col="purple1", half = True),
+                cslider(name="speed", label="Amp Dev Speed", min=0.01, max=120, init=1, rel="log", unit="Hz", col="purple2", half = True),
+                cslider(name="fspeed", label="Freq Dev Speed", min=0.01, max=120, init=1, rel="log", unit="Hz", col="purple1", half = True),
+                cslider(name="drywet", label="Dry / Wet", min=0, max=1, init=1, rel="lin", unit="x", col="blue"),
+                cpopup(name="filttype", label="Filter Type", init="Lowpass", col="green1", value=["Lowpass","Highpass","Bandpass","Bandstop"]),
+                cpopup(name="balance", label = "Balance", init= "Off", col="blue", value=["Off","Compress", "Source"]),
+                cpoly()
+          ]
+

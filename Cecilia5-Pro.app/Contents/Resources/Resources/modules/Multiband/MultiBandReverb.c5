@@ -1,0 +1,101 @@
+class Module(BaseModule):
+    """
+    "Multi-band reverberation module"
+    
+    Description
+
+    MultiBandReverb implements four separated spectral band 
+    harmonizers with independent reverb time, cutoff and gain.
+
+    Sliders
+    
+        # Frequency Splitter : 
+            Split points for multi-band processing
+        # Reverb Time 1 : 
+            Amount of reverb (tail duration) applied on first band
+        # Lowpass Cutoff 1 : 
+            Cutoff frequency of the reverb's lowpass filter (damp) for the first band
+        # Gain 1 : 
+            Gain of the reverberized first band
+        # Reverb Time 2 : 
+            Amount of reverb (tail duration) applied on second band
+        # Lowpass Cutoff 2 : 
+            Cutoff frequency of the reverb's lowpass filter (damp) for the second band
+        # Gain 2 : 
+            Gain of the reverberized second band
+        # Reverb Time 3 : 
+            Amount of reverb (tail duration) applied on third band
+        # Lowpass Cutoff 3 : 
+            Cutoff frequency of the reverb's lowpass filter (damp) for the third band
+        # Gain 3 : 
+            Gain of the reverberized third band
+        # Reverb Time 4 : 
+            Amount of reverb (tail duration) applied on fourth band
+        # Lowpass Cutoff 4 : 
+            Cutoff frequency of the reverb's lowpass filter (damp) for the fourth band
+        # Gain 4 : 
+            Gain of the reverberized fourth band
+        # Dry / Wet : 
+            Mix between the original signal and the harmonized signals
+    
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+
+    Popups & Toggles
+    
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addSampler("snd")
+        freqs = self.splitter.get(True)
+        self.FBfade = SigTo(value=1, time=.01, init=1)
+        self.split = FourBand(input=self.snd, freq1=freqs[0], freq2=freqs[1], freq3=freqs[2], mul=self.FBfade)
+        self.fbs = self.duplicate([self.fb1,self.fb2,self.fb3,self.fb4], len(self.snd))
+        self.cutoffs = self.duplicate([self.cutoff1,self.cutoff2,self.cutoff3,self.cutoff4], len(self.snd))
+        self.mul1 = DBToA(self.gain1)
+        self.mul2 = DBToA(self.gain2)
+        self.mul3 = DBToA(self.gain3)
+        self.mul4 = DBToA(self.gain4)
+        self.muls = self.duplicate([self.mul1,self.mul2,self.mul3,self.mul4], len(self.snd))
+        self.verb = WGVerb(input=self.split, feedback=self.fbs, cutoff=self.cutoffs, bal=1, mul=self.muls)
+        self.verbs = self.verb.mix(self.nchnls)
+        self.out = Interp(self.snd, self.verbs, self.drywet, mul=self.env*0.5)
+
+    def splitter_up(self, value):
+        self.FBfade.value = 0
+        time.sleep(.02)
+        self.split.freq1 = value[0]
+        self.split.freq2 = value[1]
+        self.split.freq3 = value[2]
+        time.sleep(.02)
+        self.FBfade.value = 1
+
+Interface = [   csampler(name="snd"), 
+                cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue1"),
+                csplitter(name="splitter", label="Frequency Splitter", min=100, max=18000, init=[150, 500, 2000], 
+                          num_knobs=3, rel="log", gliss=0, up=True, unit="Hz", col="grey"),
+                cslider(name="fb1", label="Reverb Time 1", min=0, max=0.999, init=0.5, rel="lin", unit="x", col="purple1", half=True),
+                cslider(name="fb2", label="Reverb Time 2", min=0, max=0.999, init=0.75, rel="lin", unit="x", col="red1", half=True),
+                cslider(name="cutoff1", label="Lowpass Cutoff 1", min=20, max=20000, init=2500, rel="log", unit="Hz", col="purple2", half=True),
+                cslider(name="cutoff2", label="Lowpass Cutoff 2", min=20, max=20000, init=4000, rel="log", unit="Hz", col="red2", half=True),
+                cslider(name="gain1", label="Gain 1", min=-48, max=18, init=0, rel="lin", unit="dB", col="purple3", half=True),
+                cslider(name="gain2", label="Gain 2", min=-48, max=18, init=0, rel="lin", unit="dB", col="red3", half=True),
+                cslider(name="fb3", label="Reverb Time 3", min=0, max=0.999, init=0.85, rel="lin", unit="x", col="green1", half=True),
+                cslider(name="fb4", label="Reverb Time 4", min=0, max=0.999, init=0.65, rel="lin", unit="x", col="blue1", half=True),
+                cslider(name="cutoff3", label="Lowpass Cutoff 3", min=20, max=20000, init=5000, rel="log", unit="Hz", col="green2", half=True),
+                cslider(name="cutoff4", label="Lowpass Cutoff 4", min=20, max=20000, init=6000, rel="log", unit="Hz", col="blue2", half=True),
+                cslider(name="gain3", label="Gain 3", min=-48, max=18, init=0, rel="lin", unit="dB", col="green3", half=True),
+                cslider(name="gain4", label="Gain 4", min=-48, max=18, init=0, rel="lin", unit="dB", col="blue3", half=True),
+                cslider(name="drywet", label="Dry / Wet", min=0, max=1, init=0.5, rel="lin", unit="x", col="blue1"),
+                cpoly()
+          ]
+

@@ -1,0 +1,58 @@
+class Module(BaseModule):
+    """
+    "Multi-stages second-order phase shifter allpass filters"
+    
+    Description
+
+    Phaser implements a multi-stages second-order allpass filters,
+    which, when mixed with the original signal, create a serie of
+    peaks/notches in the sound.
+
+    Sliders
+    
+        # Base Freq : 
+            Center frequency of the first notch of the phaser
+        # Q Factor : 
+            Q factor (resonance) of the phaser notches
+        # Notch Spread : 
+            Distance between phaser notches
+        # Feedback : 
+            Amount of phased signal fed back into the phaser
+        # Dry / Wet : 
+            Mix between the original signal and the phased signal
+
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+    
+    Popups & Toggles
+    
+        # Number of Stages : 
+            Changes notches bandwidth (stacked filters),
+            only available at initialization time
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+    
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addSampler("snd")
+        self.phaser = Phaser(input=self.snd, freq=self.centerfreq, spread=self.spread, q=self.fq, feedback=self.fb, num=self.stages_index+1, mul=0.5)
+        self.out = Interp(self.snd, self.phaser, self.drywet, mul=self.env)
+
+Interface = [   csampler(name="snd"), 
+                cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue1"),
+                cslider(name="centerfreq", label="Base Freq", min=20, max=15000, init=100, rel="log", unit="Hz", col="green1"),
+                cslider(name="fq", label="Q Factor", min=0.5, max=10, init=5, rel="lin", unit="Q", col="green2"),
+                cslider(name="spread", label="Notch Spread", min=0.1, max=2, init=1.25, rel="lin", unit="x", col="green3"),
+                cslider(name="fb", label="Feedback", min=0, max=0.999, init=0.7, rel="lin", unit="x", col="purple1"),
+                cslider(name="drywet", label="Dry / Wet", min=0, max=1, init=0.8, rel="lin", unit="x", col="blue1"),
+                cpopup(name="stages", label="Number of Stages", init="16", rate="i", col="grey", value=[str(i+1) for i in range(64)]),
+                cpoly()
+          ]
+

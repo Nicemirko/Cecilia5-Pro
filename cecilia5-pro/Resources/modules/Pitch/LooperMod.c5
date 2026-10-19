@@ -1,0 +1,112 @@
+import random
+class Module(BaseModule):
+    """
+    "Looper module with optional amplitude and frequency modulation"
+
+    Description
+    
+    A simple soundfile looper with optional amplitude and frequency modulations
+    of variable shapes.
+
+    Sliders
+    
+        # AM Range : 
+            Minimum and maximum amplitude of the Amplitude Modulation LFO
+        # AM Speed : 
+            Frequency of the Amplitude Modulation LFO
+        # FM Range : 
+            Minimum and maximum amplitude of the Frequency Modulation LFO
+        # FM Speed : 
+            Frequency of the Frequency Modulation LFO
+        # Dry / Wet : 
+            Mix between the original signal and the processed signal
+
+    Graph Only
+    
+        # Overall Amplitude : 
+            The amplitude curve applied on the total duration of the performance
+    
+    Popups & Toggles
+    
+        # AM LFO Type : 
+            Shape of the amplitude modulation waveform
+        # AM On/Off : 
+            Activate or deactivate the amplitude modulation
+        # FM LFO Type : 
+            Shape of the frequency modulation waveform
+        # FM On/Off : 
+            Activate or deactivate frequency modulation
+        # Polyphony Voices : 
+            Number of voices played simultaneously (polyphony), 
+            only available at initialization time
+        # Polyphony Spread : 
+            Pitch variation between voices (chorus), 
+            only available at initialization time
+
+    """
+    def __init__(self):
+        BaseModule.__init__(self)
+        self.snd = self.addFilein("snd")
+        if type(self.snd.getRate()) == type([]):
+            rate = self.snd.getRate()[0]
+        else:
+            rate = self.snd.getRate()
+        self.lfoam = LFO(freq=self.amspeed, sharp=1, type=self.ampwave_index, mul=0.37, add=0.6)
+        self.lfoamrange = Randi(min=self.amrange[0], max=self.amrange[1], freq=self.amspeed, mul=self.lfoam)
+        self.lfofm = LFO(freq=self.fmspeed, sharp=1, type=self.freqwave_index, mul=0.05, add=1)
+        self.sig1 = Sig(self.fmrange[0])
+        self.sig2 = Sig(self.fmrange[1])
+        self.lfofmrange = Randi(min=1-self.sig1, max=1+self.sig2, freq=self.fmspeed, mul=self.lfofm)
+        self.pitrnds = [x*rate for x in self.polyphony_spread for j in range(self.nchnls)]
+        self.ply = [i*self.lfofmrange for i in self.pitrnds]
+        self.index = Phasor(freq=self.pitrnds)
+        self.pointer = Pointer(self.snd, self.index)
+        self.index2 = Phasor(freq=self.pitrnds)
+        self.pointer2 = Pointer(self.snd, self.index2)
+        self.out = Interp(self.pointer2.mix(self.nchnls), self.pointer.mix(self.nchnls), self.drywet, mul=self.polyphony_scaling*0.5*self.env)
+
+        #INIT
+        self.onoffam(self.onoffam_value)
+        self.onofffm(self.onofffm_value)
+        
+    def ampwave(self, index, value):
+        if index == 0:
+            self.lfoam.sharp = 0.0
+        else:
+            self.lfoam.sharp = 1.0
+        self.lfoam.type = (index - 1) % 8
+        
+    def freqwave(self, index, value):
+        if index == 0:
+            self.lfofm.sharp = 0.0
+        else:
+            self.lfofm.sharp = 1.0
+        self.lfofm.type = (index - 1) % 8
+                
+    def onoffam(self, value):
+        if value == 0:
+            self.pointer.mul = 1
+        else:
+            self.pointer.mul = self.lfoamrange
+        
+    def onofffm(self, value):
+        if value == 0:
+            self.index.freq = self.pitrnds
+        else:
+            self.index.freq = self.ply
+
+Interface = [   cfilein(name="snd"), 
+                cgraph(name="env", label="Overall Amplitude", func=[(0,1),(1,1)], col="blue1"),
+                crange(name="amrange", label="AM Range", min=0.001, max=1, init=[0.3,0.5], rel="lin", unit="x", col="green1"),
+                cslider(name="amspeed", label="AM Speed", min=0.001, max=2000, init=8, rel="log", unit="Hz", col="green2"),
+                crange(name="fmrange", label="FM Range", min=0.001, max=0.2, init=[0.01,0.05], rel="lin", unit="x", col="red1"),
+                cslider(name="fmspeed", label="FM Speed", min=0.001, max=2000, init=200, rel="log", unit="Hz", col="red2"),
+                cslider(name="drywet", label="Dry / Wet", min=0, max=1, init=1, rel="lin", unit="x", col="blue1"),
+                cpopup(name="ampwave", label="AM LFO Type", init="Sine", col="green1", value=["Sine", "Saw Up", "Saw Down", "Square", 
+                            "Triangle", "Pulse", "Bipolar Pulse", "SAH"]),
+                ctoggle(name="onoffam", label="AM On/Off", init=1, col="green2"),
+                cpopup(name="freqwave", label="FM LFO Type", init="Sine", col="red1", value=["Sine", "Saw Up", "Saw Down", "Square", 
+                            "Triangle", "Pulse", "Bipolar Pulse", "SAH"]),
+                ctoggle(name="onofffm", label="FM On/Off", init=1, col="red2"),
+                cpoly()
+          ]
